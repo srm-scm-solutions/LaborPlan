@@ -60,7 +60,13 @@ with col2:
     st.dataframe(df_rate)
 
 
+# start the model run
+
 button_result=st.button("Run the model",type="primary")
+if button_result==False:
+    st.stop()
+if button_result==True:
+    st.write("Model is running")
 
 def calculate_hours(df1,df2):
     df = df1.merge(df2,on=['BUSINESS_UNIT_1','BUSINESS_UNIT_2'],how='left')
@@ -71,12 +77,10 @@ df_plan=calculate_hours(df_forecast,df_rate)
 df_plan['labor_hours']=df_plan['OUTBOUND_FORECAST'] / df_plan['UNIT_RATE']
 df_outbound=df_plan[df_plan['PROCESS'].isin(['pick','pack'])]
 
-st.dataframe(df_outbound)
-
 date_filter=date.today()-timedelta(days=450)
-st.write(date_filter)
 
 df=df_outbound[df_outbound['DATE']>date_filter]
+st.subheader("Daily hours by process")
 st.bar_chart(df,x='DATE',y='labor_hours',color='PROCESS')
 
 
