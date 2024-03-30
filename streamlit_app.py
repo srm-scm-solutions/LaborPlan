@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import datetime
+import numpy as np
 from datetime import datetime,timedelta,date
 
 st.set_page_config(
@@ -24,6 +24,8 @@ wh1,customer1,pack,100'''
 
 # data input
 
+shift_hrs=st.text_input('Shift hours per day','8')
+
 st.sidebar.header("Please input your data here")
 st.sidebar.subheader("Forecasts")
 st.sidebar.download_button(label="Click to download a forecast template",data=forecast_template,file_name='forecast_template.csv',mime='text/csv')
@@ -42,10 +44,16 @@ if rate_file is None:
     st.stop()
 
 
-df_forecast=pd.read_csv(forecast_file)
-df_rate=pd.read_csv(rate_file)
+df_forecast=pd.read_csv(forecast_file,skiprows=1,names=['business_unit1','business_unit2','date','outbound_forecast'])
+df_rate=pd.read_csv(rate_file,skiprows=1,names=['business_unit1','business_unit2','process','unit_rate'])
 
-df_forecast['DATE']=pd.to_datetime(df_forecast['DATE']).dt.date
+
+
+df_forecast['date']=pd.to_datetime(df_forecast['date']).dt.date
+df_forecast['business_unit1']=df_forecast['business_unit1'].str.upper()
+df_forecast['business_unit2']=df_forecast['business_unit2'].str.upper()
+df_rate['business_unit1']=df_rate['business_unit1'].str.upper()
+df_rate['business_unit2']=df_rate['business_unit2'].str.upper()
 
 st.subheader("Data view")
 col1,col2=st.columns(2)
@@ -69,19 +77,25 @@ if button_result==True:
     st.write("Model is running")
 
 def calculate_hours(df1,df2):
-    df = df1.merge(df2,on=['BUSINESS_UNIT_1','BUSINESS_UNIT_2'],how='left')
+    df = df1.merge(df2,on=['business_unit1','business_unit2'],how='left')
     return df
 
 df_plan=calculate_hours(df_forecast,df_rate)
 
-df_plan['labor_hours']=df_plan['OUTBOUND_FORECAST'] / df_plan['UNIT_RATE']
-df_outbound=df_plan[df_plan['PROCESS'].isin(['pick','pack'])]
+df_plan['labor_hours']=df_plan['outbound_forecast'] / df_plan['unit_rate']
+df_plan['headcount']=df_plan['labor_hours'] / float(shift_hrs)
+df_plan['headcount']=np.ceil(df_plan['headcount'])
+df_outbound=df_plan[df_plan['process'].isin(['pick','pack'])]
 
 date_filter=date.today()-timedelta(days=450)
 
-df=df_outbound[df_outbound['DATE']>date_filter]
+df=df_outbound[df_outbound['date']>date_filter]
 st.subheader("Daily hours by process")
-st.bar_chart(df,x='DATE',y='labor_hours',color='PROCESS')
+st.bar_chart(df,x='date',y='labor_hours',color='process')
+
+st.subheader("Daily headcount by process")
+st.bar_chart(df,x='date',y='headcount',color='process')
+
 
 
 
