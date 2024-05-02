@@ -1,5 +1,7 @@
-BUSINESS_UNIT_1,BUSINESS_UNIT_2,PROCESS,UNIT_RATE
-WH1,CUST1,receiving,250.5
-WH1,CUST1,putaway,300
-WH1,CUST1,pick,85
-WH1,CUST1,pack,100
+business_unit1,business_unit2,process_1,process_2,UNIT_RATE
+WH1,customer1,inbound,receiving,250.5
+WH1,customer1,inbound,putaway,300
+WH1,customer1,outbound,pick,85
+WH1,customer1,outbound,pack,100
+WH1,customer1,inbound,unload,1000
+WH1,customer1,outbound,sort,500
