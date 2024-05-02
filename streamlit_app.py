@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 from datetime import datetime,timedelta,date
 
 st.set_page_config(
@@ -12,15 +14,17 @@ st.set_page_config(
 st.title("Labor Planning Model")
 st.write("This is a prototype tool is development to compute labor planning requirement based on input parameters")
 
+forecast_template='''business_unit_1,business_unit_2,process_1,date,outbound_forecast
+wh1,customer1,outbound,2024/1/1,1200'''
 
-forecast_template='''business_unit_1,business_unit_2,date,outbound_forecast
-wh1,customer1,2024/1/1,1200'''
-
-productivity_template='''business_unit1,business_unit_2,process,unit_rate
-wh1,customer1,receiving,250.5
-wh1,customer1,putaway,300
-wh1,customer1,pick,85
-wh1,customer1,pack,100'''
+productivity_template='''business_unit1,business_unit_2,process_1,process_2,unit_rate
+wh1,customer1,inbound,unload,1000
+wh1,customer1,inbound,receiving,550
+wh1,customer1,inbound,putaway,300
+wh1,customer1,outbound,pick,85
+wh1,customer1,outbound,pack,100
+wh1,customer1,outbound,sort,500
+'''
 
 # data input
 
@@ -44,16 +48,19 @@ if rate_file is None:
     st.stop()
 
 
-df_forecast=pd.read_csv(forecast_file,skiprows=1,names=['business_unit1','business_unit2','date','outbound_forecast'])
-df_rate=pd.read_csv(rate_file,skiprows=1,names=['business_unit1','business_unit2','process','unit_rate'])
+df_forecast=pd.read_csv(forecast_file,skiprows=1,names=['business_unit1','business_unit2','date','process_1','forecast'])
+df_rate=pd.read_csv(rate_file,skiprows=1,names=['business_unit1','business_unit2','process_1','process_2','unit_rate'])
 
+#df_forecast=pd.read_csv("r'C:\Users\mistryn\Documents\streamlit_laborplan-main\input_files\\"forecast_input_file.csv',skiprows=1,names=['business_unit1','business_unit2','date','process_1','forecast'])
+#df_rate=pd.read_csv(r'C:\Users\mistryn\Documents\streamlit_laborplan-main\input_files\\process_rate_template.csv',skiprows=1,names=['business_unit1','business_unit2','process_1','process_2','unit_rate'])
 
 
 df_forecast['date']=pd.to_datetime(df_forecast['date']).dt.date
-df_forecast['business_unit1']=df_forecast['business_unit1'].str.upper()
-df_forecast['business_unit2']=df_forecast['business_unit2'].str.upper()
-df_rate['business_unit1']=df_rate['business_unit1'].str.upper()
-df_rate['business_unit2']=df_rate['business_unit2'].str.upper()
+df_forecast[['business_unit1','business_unit2','process_1']]=df_forecast[['business_unit1','business_unit2','process_1']].apply(lambda x:x.str.upper())
+df_rate[['business_unit2','process_1','process_2']]=df_rate[['business_unit2','process_1','process_2']].apply(lambda x:x.str.upper())
+
+df_forecast.head()
+df_rate.head()
 
 st.subheader("Data view")
 col1,col2=st.columns(2)
@@ -61,7 +68,6 @@ col1,col2=st.columns(2)
 with col1:
     col1.subheader("Forecast preview")
     st.dataframe(df_forecast)
-#col1.line_chart(df_forecast,x='DATE',y='OUTBOUND_FORECAST')
 
 with col2:
     col2.subheader("Process rates")
@@ -74,28 +80,40 @@ button_result=st.button("Run the model",type="primary")
 if button_result==False:
     st.stop()
 if button_result==True:
-    st.write("Model is running")
 
-def calculate_hours(df1,df2):
-    df = df1.merge(df2,on=['business_unit1','business_unit2'],how='left')
-    return df
+    def calculate_hours(df1,df2):
+        df = df1.merge(df2,on=['business_unit1','business_unit2','process_1'],how='left')
+        return df
 
-df_plan=calculate_hours(df_forecast,df_rate)
-
-df_plan['labor_hours']=df_plan['outbound_forecast'] / df_plan['unit_rate']
-df_plan['headcount']=df_plan['labor_hours'] / float(shift_hrs)
-df_plan['headcount']=np.ceil(df_plan['headcount'])
-df_outbound=df_plan[df_plan['process'].isin(['pick','pack'])]
-
-date_filter=date.today()-timedelta(days=450)
-
-df=df_outbound[df_outbound['date']>date_filter]
-st.subheader("Daily hours by process")
-st.bar_chart(df,x='date',y='labor_hours',color='process')
-
-st.subheader("Daily headcount by process")
-st.bar_chart(df,x='date',y='headcount',color='process')
+    df_plan=calculate_hours(df_forecast,df_rate)
 
 
+    df_plan['labor_hours']=df_plan['forecast'] / df_plan['unit_rate']
+    df_plan['headcount']=df_plan['labor_hours'] / float(shift_hrs)
+    df_plan['headcount']=np.ceil(df_plan['headcount'])
+    df_inbound=df_plan[df_plan['process_1'].isin(['inbound'])]
+    df_outbound=df_plan[df_plan['process_1'].isin(['outbound'])]
 
+    start_date=df_plan['date'].min()
+    start_date1=start_date
 
+    df=df_plan[df_plan['date']>=start_date1]
+    df['week']=df['date'].apply(lambda x:pd.to_datetime(x)).dt.strftime('%Y-%U')
+    df1=df.groupby(by=['week','process_1'],as_index=False).agg({'labor_hours':'sum',
+                                                                    'headcount':'mean'})
+    df1[['headcount','labor_hours']]=df1[['headcount','labor_hours']].apply(lambda x:np.ceil(x))
+
+    st.subheader("Weekly hours by process")
+    st.bar_chart(df1,x='week',y='labor_hours',color='process_1')
+
+    st.subheader("Weekly headcount by process")
+    st.bar_chart(df1,x='week',y='headcount',color='process_1')
+
+def convert_df(df):
+   return df.to_csv(index=False).encode('utf-8')
+
+csv=convert_df(df1)
+
+st.download_button(label="Download model results",data=csv,file_name='labor plan output.csv',mime='text/csv')
+
+st.write("Thank you for visiting our model today! Have a nice day")
