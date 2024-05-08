@@ -10,7 +10,7 @@ st.set_page_config(
 )
 
 st.title("Labor Planning Model")
-st.write("This is a prototype tool is development to compute labor planning requirement based on input parameters")
+st.write("This is a prototype tool in development to compute labor planning requirement based on input parameters")
 
 forecast_template='''business_unit_1,business_unit_2,process_1,date,outbound_forecast
 wh1,customer1,outbound,2024/1/1,1200'''
