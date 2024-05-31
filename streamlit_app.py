@@ -12,17 +12,12 @@ st.set_page_config(
 st.title("Labor Planning Model")
 st.write("This is a prototype tool in development to compute labor planning requirement based on input parameters")
 
-forecast_template='''business_unit_1,business_unit_2,process_1,date,outbound_forecast
-wh1,customer1,outbound,2024/1/1,1200'''
+forecast_template = pd.read_csv("input_files/forecast_input_file.csv")
+forecast_template_str = forecast_template.to_csv(index=False)  
 
-productivity_template='''business_unit1,business_unit_2,process_1,process_2,unit_rate
-wh1,customer1,inbound,unload,1000
-wh1,customer1,inbound,receiving,550
-wh1,customer1,inbound,putaway,300
-wh1,customer1,outbound,pick,85
-wh1,customer1,outbound,pack,100
-wh1,customer1,outbound,sort,500
-'''
+
+productivity_template = pd.read_csv("input_files/process_rate_template.csv")  
+productivity_template_str = productivity_template.to_csv(index=False)
 
 # data input
 
@@ -30,11 +25,11 @@ shift_hrs=st.text_input('Shift hours per day','8')
 
 st.sidebar.header("Please input your data here")
 st.sidebar.subheader("Forecasts")
-st.sidebar.download_button(label="Click to download a forecast template",data=forecast_template,file_name='forecast_template.csv',mime='text/csv')
+st.sidebar.download_button(label="Click to download a forecast template",data=forecast_template_str,file_name='forecast_template.csv',mime='text/csv')
 forecast_file=st.sidebar.file_uploader("Upload forecast file")
 
 st.sidebar.subheader("Process rates")
-st.sidebar.download_button(label="Click to download a rate template file",data=productivity_template,file_name='process_rate_template.csv',mime='text/csv')
+st.sidebar.download_button(label="Click to download a rate template file",data=productivity_template_str,file_name='process_rate_template.csv',mime='text/csv')
 rate_file=st.sidebar.file_uploader("Upload process rate file")
 
 if forecast_file is None:
