@@ -4,7 +4,7 @@ import numpy as np
 from datetime import datetime,timedelta,date
 
 st.set_page_config(
-    page_title="Labor Planning Application",
+    page_title="Labor Planning Model",
     page_icon=":brain:",
     layout="wide"
 )
@@ -12,143 +12,153 @@ st.set_page_config(
 st.title("Labor Planning Model")
 st.write("This is a prototype tool in development to compute labor planning requirement based on input parameters")
 
+#Reading the forecast template from the source to make it available as sample to download for the user
 forecast_template = pd.read_csv("input_files/forecast_input_file.csv")
+#forecast_template = pd.read_csv("forecast_input_file.csv")
 forecast_template_str = forecast_template.to_csv(index=False)  
-
-
-productivity_template = pd.read_csv("input_files/process_rate_template.csv")  
-productivity_template_str = productivity_template.to_csv(index=False)
-
-# data input
-
-shift_hrs=st.text_input('Shift hours per day','8')
-labor_rate=st.text_input('Labor rate per hour in USD','20.5')
-
-st.sidebar.header("Please input your data here")
-st.sidebar.subheader("Forecasts")
+st.sidebar.header("Forecasts")
 st.sidebar.download_button(label="Click to download a forecast template",data=forecast_template_str,file_name='forecast_template.csv',mime='text/csv')
+
+#Providing option to upload the user's forecast data in the form of forecast template provided above
+st.sidebar.subheader("Please upload your data here")
 forecast_file=st.sidebar.file_uploader("Upload forecast file")
 
-st.sidebar.subheader("Process rates")
-st.sidebar.download_button(label="Click to download a rate template file",data=productivity_template_str,file_name='process_rate_template.csv',mime='text/csv')
-rate_file=st.sidebar.file_uploader("Upload process rate file")
 
+# Initialize session state for the number of rows
+if "num_rows" not in st.session_state:
+    st.session_state.num_rows = 3
+if "df_forecast" not in st.session_state:
+        st.session_state.df_forecast = False
+if "df_rate" not in st.session_state:
+        st.session_state.df_rate = False
+if "shift_hrs" not in st.session_state:
+        st.session_state.shift_hrs = False
 
-if forecast_file is None:
-    st.info(" Upload a forecast file through config")
-    st.stop()
+# data input
+with st.form(key='Rate Form'):
+			col1,col2,col3 = st.columns([1,2,3])
 
-if rate_file is None:
-    st.info(" Upload a process rate file through config")
-    st.stop()
+			with col1:
+				amount = st.number_input("Shift hours per day",1,24)
 
+			with col2:
+				hour_per_week = st.number_input("Labor rate per hour in USD",1,120)
+                        
+			with col3:
+				calculated = st.form_submit_button(label='calculate')
+                    
+if calculated:
+    #shift_hrs=st.text_input('Shift hours per day','8')
+    st.session_state.shift_hrs = hour_per_week
 
-df_forecast=pd.read_csv(forecast_file,skiprows=1,names=['business_unit1','business_unit2','date','process_1','forecast'])
-df_rate=pd.read_csv(rate_file,skiprows=1,names=['business_unit1','business_unit2','process_1','process_2','unit_rate'])
-df_forecast['date']=pd.to_datetime(df_forecast['date']).dt.date
+def calculate_hours(df1,df2):
+    df = df1.merge(df2,on=['Business','Area','Process'],how='left')
+    return df
 
-min_date=df_forecast['date'].min()
-max_date=df_forecast['date'].max()
+def convert_df(df):
+   return df.to_csv(index=False).encode('utf-8')
 
+# Function to add a new row
+def add_row():
+    st.session_state.num_rows += 1
 
-st.title("Select date range")
-col1,col2=st.columns(2)
-with col1:
-    start_date=st.date_input("Pick start date",value=min_date,min_value=min_date,max_value=max_date)
+# Function to remove the last row
+def remove_row():
+    if st.session_state.num_rows > 1:
+        st.session_state.num_rows -= 1
 
-with col2:
-    end_date=st.date_input("Pick end date",value=max_date,min_value=min_date,max_value=max_date)
-    if end_date<=start_date:
-        st.warning('Please select a end date that is after start date',icon="⚠️")
+# Column names
+columns = ["S.No.", "Business", "Area", "Process","Function","Unit_Rate","Percentage Allocation"]
+
+# Create a dictionary to hold the form data, including serial numbers
+data = {col: [""] * st.session_state.num_rows for col in columns}
+data["S.No."] = list(range(1, st.session_state.num_rows + 1))  # Serial numbers
+
+# Display the form in a tabular format
+with st.form("data_entry_form"):
+    st.write("Enter your Process rate data:")
+
+    # Create a table header
+    cols = st.columns(len(columns))
+    for col, column_name in zip(cols, columns):
+        col.write(f"**{column_name}**")  # Make the header bold
+
+    # Create inputs for each cell in the table, excluding the serial number column
+    for i in range(st.session_state.num_rows):
+        cols = st.columns(len(columns))
+        for j, (col, column_name) in enumerate(zip(cols, columns)):
+            if column_name == "S.No.":
+                col.write(data[column_name][i])
+            else:
+                data[column_name][i] = col.text_input(f"{column_name}_{i}", value=data[column_name][i], label_visibility="collapsed")
+
+    # Buttons to add or remove rows within the form
+    col1, col2, col3 = st.columns([1, 2, 3])
+    with col1:
+        st.form_submit_button("Add Row", on_click=add_row)
+    with col2:
+        submitted = st.form_submit_button("Submit")
+    with col3:
+        st.form_submit_button("Remove Row", on_click=remove_row)
+
+# Process the form data after submission
+if submitted:
+    if forecast_file is None:
+        st.info("Please Upload a forecast file through config")
         st.stop()
 
-st.sidebar.subheader("Process rates")
+    else:
+        # Convert the dictionary to a DataFrame
+        df_rate = pd.DataFrame(data)
+        df_rate = df_rate.drop(columns = ['S.No.'])
+        df_forecast=pd.read_csv(forecast_file,skiprows=1,names=['business_unit1','business_unit2','date','process_1','forecast'])
 
+        #Formatting forecast data
+        df_forecast['date']=pd.to_datetime(df_forecast['date']).dt.date
+        df_forecast[['business_unit1','business_unit2','process_1']]=df_forecast[['business_unit1','business_unit2','process_1']].apply(lambda x:x.str.upper())
+        df_forecast = df_forecast.rename(columns = {'business_unit1':'Business','business_unit2':'Area','process_1':'Process'})
+        st.session_state.df_forecast = df_forecast
+        df_rate[["Business", "Area", "Process","Function","Unit_Rate","Percentage Allocation"]]=df_rate[["Business", "Area", "Process","Function","Unit_Rate","Percentage Allocation"]].apply(lambda x:x.str.upper())
+        df_rate['Unit_Rate'] = df_rate['Unit_Rate'].astype('int')
+        st.session_state.df_rate = df_rate
+        st.subheader("Data view")
+        col1,col2=st.columns(2)
 
-df_forecast=df_forecast[(df_forecast['date']>=start_date) & (df_forecast['date']<=end_date)]
-df_forecast[['business_unit1','business_unit2','process_1']]=df_forecast[['business_unit1','business_unit2','process_1']].apply(lambda x:x.str.upper())
-df_rate[['business_unit2','process_1','process_2']]=df_rate[['business_unit2','process_1','process_2']].apply(lambda x:x.str.upper())
+        with col1:
+            col1.subheader("Forecast preview")
+            st.dataframe(df_forecast)
 
-df_forecast.head()
-df_rate.head()
-
-st.sidebar.subheader("Process rates")
-
-
-
-st.subheader("Data view")
-col1,col2=st.columns(2)
-
-with col1:
-    col1.subheader("Forecast preview")
-    st.dataframe(df_forecast)
-
-with col2:
-    col2.subheader("Process rates")
-    st.dataframe(df_rate)
-
+        with col2:
+            col2.subheader("Process rates")
+            st.dataframe(df_rate)
 
 # start the model run
-
 button_result=st.button("Run the model",type="primary")
 if button_result==False:
     st.stop()
 if button_result==True:
-
-    def calculate_hours(df1,df2):
-        df = df1.merge(df2,on=['business_unit1','business_unit2','process_1'],how='left')
-        return df
-
-    df_plan=calculate_hours(df_forecast,df_rate)
-
-
-    df_plan['labor_hours']=np.ceil(df_plan['forecast'] / df_plan['unit_rate'])
-    df_plan['labor_cost']=df_plan['labor_hours']*float(labor_rate)
-    df_plan['headcount']=df_plan['labor_hours'] / float(shift_hrs)
+    df_plan=calculate_hours(st.session_state.df_forecast,st.session_state.df_rate)
+    df_plan['labor_hours']=df_plan['forecast'] / df_plan['Unit_Rate']
+    df_plan['headcount']=df_plan['labor_hours'] / float(st.session_state.shift_hrs)
     df_plan['headcount']=np.ceil(df_plan['headcount'])
-    df_inbound=df_plan[df_plan['process_1'].isin(['inbound'])]
-    df_outbound=df_plan[df_plan['process_1'].isin(['outbound'])]
+    df_inbound=df_plan[df_plan['Process'].isin(['inbound'])]
+    df_outbound=df_plan[df_plan['Process'].isin(['outbound'])]
 
     start_date=df_plan['date'].min()
     start_date1=start_date
 
     df=df_plan[df_plan['date']>=start_date1]
     df['week']=df['date'].apply(lambda x:pd.to_datetime(x)).dt.strftime('%Y-%U')
+    df1=df.groupby(by=['week','Process'],as_index=False).agg({'labor_hours':'sum',
+                                                                    'headcount':'mean'})
+    df1[['headcount','labor_hours']]=df1[['headcount','labor_hours']].apply(lambda x:np.ceil(x))
 
-    st.write('Model run is complete! Following is the output summary')
+    st.subheader("Weekly hours by process")
+    st.bar_chart(df1,x='week',y='labor_hours',color='Process')
 
-    df1=df.groupby(by=['week','process_1'],as_index=False).agg({'labor_cost':'sum','labor_hours':'sum','forecast':'sum'})
-    df1['weekly_headcount']=df1['labor_hours']/40
-    
-    df1[['weekly_headcount','labor_hours','labor_cost']]=df1[['weekly_headcount','labor_hours','labor_cost']].apply(lambda x:np.ceil(x).fillna(0)).astype(int)
+    st.subheader("Weekly headcount by process")
+    st.bar_chart(df1,x='week',y='headcount',color='Process')
 
-    total_cost=df1['labor_cost'].sum()
-    total_units=df1['forecast'].sum()
-    total_cpu=np.round(total_cost/total_units,2)
-
-    df2=pd.pivot_table(df1,values=['weekly_headcount','labor_cost'],index=['process_1'],columns=['week'],aggfunc=np.sum)
-    df2.loc['TOTAL']=df2.sum(axis=0)
-
-    df3=pd.pivot_table(df,values='labor_hours',index=['process_1'],columns=['date'],aggfunc=np.sum)
-    df3.loc['TOTAL']=df3.sum(axis=0)
-
-    st.write('Weekly headcount by process')
-    st.table(data=df2)
-
-    st.write('Daily hours by process')
-    st.table(data=df3)
-
-
-    st.write('Total cost per unit is USD',total_cpu)
-
-   
-
-
-def convert_df(df):
-    return df.to_csv(index=False).encode('utf-8')
-
-csv=convert_df(df1)
-
-st.download_button(label="Download model results",data=csv,file_name='labor plan output.csv',mime='text/csv')
-
-st.write("Thank you for visiting our app today! Have a nice day")
+    csv=convert_df(df1)
+    st.download_button(label="Download model results",data=csv,file_name='labor plan output.csv',mime='text/csv')
+    st.write("Thank you for visiting our model today! Have a nice day")
