@@ -69,6 +69,7 @@ def convert_df(df):
 
 # Function to add a new row
 def add_row():
+    st.session_state.submit_state = False
     st.session_state.num_rows += 1
 
 # Function to remove the last row
@@ -127,7 +128,7 @@ if submitted or st.session_state.submit_state:
         df_forecast['date']=pd.to_datetime(df_forecast['date']).dt.date
         df_forecast[['business_unit1','business_unit2','Process']]=df_forecast[['business_unit1','business_unit2','Process']].apply(lambda x:x.str.upper())
         df_forecast = df_forecast.rename(columns = {'business_unit1':'Business','business_unit2':'Area','Process':'Process'})
-        st.session_state.df_forecast = df_forecast
+        
 
         min_date=df_forecast['date'].min()
         max_date=df_forecast['date'].max()
@@ -152,7 +153,7 @@ if submitted or st.session_state.submit_state:
         else:
             #Filtered forecast dataframe
             df_forecast=df_forecast[(df_forecast['date']>=start_date) & (df_forecast['date']<=end_date)]
-            
+            st.session_state.df_forecast = df_forecast
             # Convert the dictionary to a DataFrame
             df_rate = pd.DataFrame(data)
             df_rate = df_rate.drop(columns = ['S.No.'])
@@ -177,7 +178,7 @@ if button_result==False:
     st.stop()
 if button_result==True:
     
-    df_plan=calculate_hours(df_forecast,df_rate)
+    df_plan=calculate_hours(st.session_state.df_forecast,st.session_state.df_rate)
     df_plan['labor_hours']=np.ceil(df_plan['forecast'] / df_plan['Unit_Rate'])
     df_plan['labor_cost']=df_plan['labor_hours']*float(st.session_state.labor_rate)
     df_plan['headcount']=df_plan['labor_hours'] / float(st.session_state.shift_hrs)
