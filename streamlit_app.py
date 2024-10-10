@@ -10,18 +10,18 @@ st.set_page_config(
 )
 
 st.title("Labor Planning Model")
-st.write("This is a prototype tool in development to compute labor planning requirement based on input parameters")
+#st.write("This is a prototype tool in development to compute labor planning requirement based on input parameters")
 
 #Reading the forecast template from the source to make it available as sample to download for the user
 forecast_template = pd.read_csv("input_files/forecast_input_file.csv")
 #forecast_template = pd.read_csv("forecast_input_file.csv")
 forecast_template_str = forecast_template.to_csv(index=False)  
-st.sidebar.header("Forecasts")
-st.sidebar.download_button(label="Click to download a forecast template",data=forecast_template_str,file_name='forecast_template.csv',mime='text/csv')
+st.sidebar.header("Forecast")
+st.sidebar.download_button(label="Click to download template",data=forecast_template_str,file_name='forecast_template.csv',mime='text/csv')
 
 #Providing option to upload the user's forecast data in the form of forecast template provided above
-st.sidebar.subheader("Please upload your data here")
-forecast_file=st.sidebar.file_uploader("Upload forecast file")
+st.sidebar.subheader("Upload Forecast data")
+forecast_file=st.sidebar.file_uploader("")#Upload forecast file
 
 
 # Initialize session state for the number of rows
