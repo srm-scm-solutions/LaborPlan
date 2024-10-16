@@ -202,8 +202,8 @@ if button_result==True:
 
     total_cost=df1['labor_cost'].sum()
     total_units=df1['forecast'].sum()
-    #total_cpu=np.round(total_cost/total_units,2)
-    total_cpu=total_cost/total_units
+    total_cpu=np.round(total_cost/total_units,2)
+    #total_cpu=total_cost/total_units
 
     #df2=pd.pivot_table(df1,values=['weekly_headcount','labor_cost'],index=['Function'],columns=['week'],aggfunc=np.sum)
     df2=pd.pivot_table(df1,values='weekly_headcount',index=['Function'],columns=['week'],aggfunc=np.sum)
