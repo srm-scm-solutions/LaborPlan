@@ -183,8 +183,8 @@ if button_result==True:
     df_plan['labor_cost']=df_plan['labor_hours']*float(st.session_state.labor_rate)
     df_plan['headcount']=df_plan['labor_hours'] / float(st.session_state.shift_hrs)
     df_plan['headcount']=np.ceil(df_plan['headcount'])
-    df_inbound=df_plan[df_plan['Process'].isin(['inbound'])]
-    df_outbound=df_plan[df_plan['Process'].isin(['outbound'])]
+    df_inbound=df_plan[df_plan['Process'].isin(['INBOUND'])]
+    df_outbound=df_plan[df_plan['Process'].isin(['OUTBOUND'])]
 
     start_date=df_plan['date'].min()
     start_date1=start_date
@@ -194,7 +194,7 @@ if button_result==True:
     
     st.write('Model run is complete! Following is the output summary')
 
-    df1=df.groupby(by=['week','Process'],as_index=False).agg({'labor_cost':'sum','labor_hours':'sum','forecast':'sum'})
+    df1=df.groupby(by=['week','Function'],as_index=False).agg({'labor_cost':'sum','labor_hours':'sum','forecast':'sum'})
     df1['weekly_headcount']=df1['labor_hours']/40
     df1[['weekly_headcount','labor_hours','labor_cost']]=df1[['weekly_headcount','labor_hours','labor_cost']].apply(lambda x:np.ceil(x).fillna(0)).astype(int)
     csv=convert_df(df1)
