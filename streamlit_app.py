@@ -159,6 +159,7 @@ if submitted or st.session_state.submit_state:
             df_rate = df_rate.drop(columns = ['S.No.'])
 
             df_rate[["Business", "Area", "Process","Function","Unit_Rate","Percentage Allocation"]]=df_rate[["Business", "Area", "Process","Function","Unit_Rate","Percentage Allocation"]].apply(lambda x:x.str.upper())
+            df_rate['Process']=df_rate['Process'].str.strip()
             df_rate['Unit_Rate'] = df_rate['Unit_Rate'].astype('int')
             st.session_state.df_rate = df_rate
             st.subheader("Data view")
