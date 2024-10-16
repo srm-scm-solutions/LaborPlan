@@ -203,10 +203,10 @@ if button_result==True:
     total_units=df1['forecast'].sum()
     total_cpu=np.round(total_cost/total_units,2)
 
-    df2=pd.pivot_table(df1,values=['weekly_headcount','labor_cost'],index=['Process'],columns=['week'],aggfunc=np.sum)
+    df2=pd.pivot_table(df1,values=['weekly_headcount','labor_cost'],index=['Function'],columns=['week'],aggfunc=np.sum)
     df2.loc['TOTAL']=df2.sum(axis=0)
 
-    df3=pd.pivot_table(df,values='labor_hours',index=['Process'],columns=['date'],aggfunc=np.sum)
+    df3=pd.pivot_table(df,values='labor_hours',index=['Function'],columns=['date'],aggfunc=np.sum)
     df3.loc['TOTAL']=df3.sum(axis=0)
 
     st.write('Weekly headcount by process')
