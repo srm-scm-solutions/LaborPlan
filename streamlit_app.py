@@ -202,7 +202,8 @@ if button_result==True:
 
     total_cost=df1['labor_cost'].sum()
     total_units=df1['forecast'].sum()
-    total_cpu=np.round(total_cost/total_units,2)
+    #total_cpu=np.round(total_cost/total_units,2)
+    total_cpu=total_cost/total_units
 
     #df2=pd.pivot_table(df1,values=['weekly_headcount','labor_cost'],index=['Function'],columns=['week'],aggfunc=np.sum)
     df2=pd.pivot_table(df1,values='weekly_headcount',index=['Function'],columns=['week'],aggfunc=np.sum)
@@ -218,6 +219,8 @@ if button_result==True:
     st.table(data=df3)
 
     #st.write('Total cost per unit is USD',total_cpu)
+    st.write("total_cost: ",total_cost)
+    st.write("total_units: ",total_units)
     st.write(f"Total cost per unit is: ${total_cpu:.4f}")
     
     st.download_button(label="Download model results",data=csv,file_name='labor plan output.csv',mime='text/csv')
