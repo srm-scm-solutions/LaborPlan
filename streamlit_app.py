@@ -219,7 +219,7 @@ if button_result==True:
     st.table(data=df3)
 
     #st.write('Total cost per unit is USD',total_cpu)
-    st.dataframe(df1)
+    #st.dataframe(df1)
     st.write("total_cost: ",total_cost)
     st.write("total_units: ",total_units)
     st.write(f"Total cost per unit is: ${total_cpu:.4f}")
