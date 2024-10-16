@@ -211,13 +211,14 @@ if button_result==True:
     df3=pd.pivot_table(df,values='labor_hours',index=['Function'],columns=['date'],aggfunc=np.sum)
     df3.loc['TOTAL']=df3.sum(axis=0)
 
-    st.write('Weekly headcount by process')
+    st.write('Weekly headcount by Function')
     st.table(data=df2)
 
-    st.write('Daily hours by process')
+    st.write('Daily hours by Function')
     st.table(data=df3)
 
-    st.write('Total cost per unit is USD',total_cpu)
+    #st.write('Total cost per unit is USD',total_cpu)
+    st.write(f"Total cost per unit is: ${total_cpu:.2f}")
     
     st.download_button(label="Download model results",data=csv,file_name='labor plan output.csv',mime='text/csv')
     st.write("Thank you for visiting our app today! Have a nice day")
