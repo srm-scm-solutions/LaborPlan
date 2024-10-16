@@ -218,7 +218,7 @@ if button_result==True:
     st.table(data=df3)
 
     #st.write('Total cost per unit is USD',total_cpu)
-    st.write(f"Total cost per unit is: ${total_cpu:.2f}")
+    st.write(f"Total cost per unit is: ${total_cpu:.4f}")
     
     st.download_button(label="Download model results",data=csv,file_name='labor plan output.csv',mime='text/csv')
     st.write("Thank you for visiting our app today! Have a nice day")
